@@ -19,7 +19,6 @@ require_once(__DIR__ . '/../../config.php');
 use block_dashboardannouncements\form\announcement_form;
 use block_dashboardannouncements\local\announcement_manager;
 use block_dashboardannouncements\local\audience_resolver;
-use block_dashboardannouncements\local\presentation_helper;
 
 /**
  * Create or edit an announcement.
@@ -71,7 +70,6 @@ if ($announcement) {
     $defaults = (object)[
         'attachment_filemanager' => $manager->prepare_attachment_draft_itemid(),
         'fieldoperator' => audience_resolver::OP_CONTAINS,
-        'showaspopup' => 0,
     ];
     $form->set_data($defaults);
 }
@@ -90,30 +88,5 @@ if ($data = $form->get_data()) {
 }
 
 echo $OUTPUT->header();
-$iscreate = !$announcement;
-$title = $iscreate
-    ? get_string('createannouncement', 'block_dashboardannouncements')
-    : get_string('editannouncement', 'block_dashboardannouncements');
-$badge = $iscreate
-    ? presentation_helper::render_status_badge('draft', get_string('status:draft', 'block_dashboardannouncements'))
-    : presentation_helper::render_status_badge((string)$announcement->status);
-
-$headercontent = html_writer::div(
-    html_writer::tag('h2', $title, ['class' => 'dashboardannouncements-page-title']) . $badge,
-    'dashboardannouncements-panel__header'
-);
-
-if ($announcement) {
-    $resolver = new audience_resolver();
-    $targeted = get_string('targetedblank', 'block_dashboardannouncements');
-    $notified = $announcement->notifieduniquecount ?? get_string('metadatanotavailable', 'block_dashboardannouncements');
-    $summary = $resolver->get_audience_summary($announcement);
-    $metaitems = presentation_helper::build_manager_metadata_items((string)$summary, (string)$targeted, (string)$notified);
-    $headercontent .= presentation_helper::render_metadata_list($metaitems, 'dashboardannouncements-meta-list');
-}
-
-echo html_writer::div($headercontent, 'dashboardannouncements-panel');
-echo html_writer::start_div('dashboardannouncements-form');
 $form->display();
-echo html_writer::end_div();
 echo $OUTPUT->footer();

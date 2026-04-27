@@ -25,7 +25,7 @@ defined('MOODLE_INTERNAL') || die();
  */
 
 $plugin->component = 'block_dashboardannouncements';
-$plugin->version = 2026041904;
+$plugin->version = 2026042802;
 $plugin->requires = 2022041900;
 $plugin->maturity = MATURITY_ALPHA;
 $plugin->release = '0.1.0';

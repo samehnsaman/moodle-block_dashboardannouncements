@@ -73,18 +73,17 @@ class audience_resolver {
     public function get_field_options(): array {
         global $DB;
 
-        $options = [
-            get_string('fieldsource:core', 'block_dashboardannouncements') => [],
-            get_string('fieldsource:profile', 'block_dashboardannouncements') => [],
-        ];
+        $options = [];
+        $coreprefix = get_string('fieldsource:core', 'block_dashboardannouncements') . ': ';
+        $profileprefix = get_string('fieldsource:profile', 'block_dashboardannouncements') . ': ';
 
         foreach ($this->get_core_user_fields() as $key => $label) {
-            $options[get_string('fieldsource:core', 'block_dashboardannouncements')]['core:' . $key] = $label;
+            $options['core:' . $key] = $coreprefix . $label;
         }
 
         $profilefields = $DB->get_records('user_info_field', null, 'name ASC', 'id, shortname, name');
         foreach ($profilefields as $field) {
-            $options[get_string('fieldsource:profile', 'block_dashboardannouncements')]['profile:' . $field->shortname] = $field->name;
+            $options['profile:' . $field->shortname] = $profileprefix . $field->name;
         }
 
         return $options;

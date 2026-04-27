@@ -175,6 +175,41 @@ class announcement_manager {
     }
 
     /**
+     * Build compact mobile cards visible to a user.
+     *
+     * @param int $userid
+     * @param int $limit
+     * @param bool $includemanagerdetails
+     * @return array
+     */
+    public function get_mobile_cards_for_user(
+        int $userid,
+        int $limit = 5,
+        bool $includemanagerdetails = false
+    ): array {
+        $announcements = $this->get_announcements_for_user($userid, $limit);
+        if (!$announcements) {
+            return [];
+        }
+
+        $cards = [];
+        foreach ($announcements as $announcement) {
+            $attachment = $this->get_attachment_file((int)$announcement->id);
+            $card = presentation_helper::build_mobile_preview_payload(
+                $announcement,
+                (bool)$attachment,
+                $includemanagerdetails
+            );
+            $card['detailurl'] = (new \moodle_url('/blocks/dashboardannouncements/view.php', [
+                'id' => (int)$announcement->id,
+            ]))->out(false);
+            $cards[] = $card;
+        }
+
+        return $cards;
+    }
+
+    /**
      * Get the latest popup announcement a user should see.
      *
      * Only the latest eligible popup is considered. If the latest popup has already
@@ -320,7 +355,12 @@ class announcement_manager {
                 return ['cohortids' => array_map('intval', $data->cohortids ?? [])];
 
             case audience_resolver::TARGET_FIELD:
-                [$fieldsource, $fieldkey] = $this->resolver->parse_field_lookup((string)($data->fieldlookup ?? ''));
+                $fieldlookup = $data->fieldlookup ?? '';
+                if (is_array($fieldlookup)) {
+                    $fieldlookup = (string)reset($fieldlookup);
+                }
+
+                [$fieldsource, $fieldkey] = $this->resolver->parse_field_lookup((string)$fieldlookup);
                 $fieldlabel = $this->resolver->get_field_label($fieldsource, $fieldkey);
                 return [
                     'fieldsource' => $fieldsource,

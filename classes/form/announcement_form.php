@@ -88,7 +88,13 @@ class announcement_form extends moodleform {
         $mform->addElement('autocomplete', 'cohortids', get_string('cohortids', 'block_dashboardannouncements'), $cohortoptions, ['multiple' => true]);
         $mform->hideIf('cohortids', 'targettype', 'neq', audience_resolver::TARGET_COHORT);
 
-        $mform->addElement('autocomplete', 'fieldlookup', get_string('fieldlookup', 'block_dashboardannouncements'), $resolver->get_field_options());
+        $mform->addElement(
+            'autocomplete',
+            'fieldlookup',
+            get_string('fieldlookup', 'block_dashboardannouncements'),
+            $resolver->get_field_options(),
+            ['multiple' => false]
+        );
         $mform->hideIf('fieldlookup', 'targettype', 'neq', audience_resolver::TARGET_FIELD);
 
         $fieldoperators = [
@@ -155,7 +161,12 @@ class announcement_form extends moodleform {
                 break;
 
             case audience_resolver::TARGET_FIELD:
-                if (empty($data['fieldlookup'])) {
+                $fieldlookup = $data['fieldlookup'] ?? '';
+                if (is_array($fieldlookup)) {
+                    $fieldlookup = (string)reset($fieldlookup);
+                }
+
+                if (trim((string)$fieldlookup) === '') {
                     $errors['fieldlookup'] = get_string('missingfieldselection', 'block_dashboardannouncements');
                 } else if (
                     $resolver->operator_uses_value((string)$data['fieldoperator']) &&

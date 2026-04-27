@@ -190,6 +190,47 @@ class presentation_helper {
     }
 
     /**
+     * Build a compact mobile payload for one announcement.
+     *
+     * @param \stdClass $announcement
+     * @param bool $hasattachment
+     * @param bool $includemanagerdetails
+     * @return array
+     */
+    public static function build_mobile_preview_payload(
+        \stdClass $announcement,
+        bool $hasattachment,
+        bool $includemanagerdetails = false
+    ): array {
+        $payload = [
+            'title' => trim(strip_tags(format_string((string)($announcement->title ?? '')))),
+            'snippet' => self::get_compact_message_preview((string)($announcement->message ?? '')),
+            'hasattachment' => $hasattachment,
+            'attachmentlabel' => get_string('mobileattachmentlabel', 'block_dashboardannouncements'),
+            'submittedlabel' => get_string(
+                'submittedon',
+                'block_dashboardannouncements',
+                self::format_metadata_datetime((int)($announcement->timecreated ?? 0))
+            ),
+            'openlabel' => get_string('mobileopenannouncement', 'block_dashboardannouncements'),
+            'hasmanagermeta' => false,
+            'managermetalabel' => '',
+        ];
+
+        if ($includemanagerdetails) {
+            $status = self::get_status_label((string)($announcement->status ?? ''));
+            $date = self::format_metadata_datetime((int)($announcement->timecreated ?? 0));
+            $payload['hasmanagermeta'] = true;
+            $payload['managermetalabel'] = get_string('mobilemanagermeta', 'block_dashboardannouncements', (object)[
+                'status' => $status,
+                'date' => $date,
+            ]);
+        }
+
+        return $payload;
+    }
+
+    /**
      * Render compact attachment indicator icon.
      *
      * @param bool $hasattachment
@@ -311,7 +352,7 @@ class presentation_helper {
         $output .= \html_writer::tag('p', s($message), ['class' => 'dashboardannouncements-empty__text']);
 
         if ($actionshtml !== '') {
-            $output .= \html_writer::div($actionshtml, 'dashboardannouncements-actions mt-3');
+            $output .= \html_writer::div($actionshtml, 'dashboardannouncements-actions');
         }
 
         return \html_writer::div($output, 'dashboardannouncements-empty');

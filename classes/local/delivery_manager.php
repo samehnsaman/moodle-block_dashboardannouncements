@@ -59,7 +59,7 @@ class delivery_manager {
             'timefinished' => null,
         ];
 
-        $queueid = $DB->insert_record('block_dashann_delqueue', $queue);
+        $queueid = $DB->insert_record('block_dashboardannouncements_delqueue', $queue);
         $DB->set_field('block_dashboardannouncements', 'firstdeliveryqueued', 1, ['id' => $announcement->id]);
 
         return $queueid;
@@ -73,7 +73,7 @@ class delivery_manager {
      */
     public function get_pending_queue_items(int $limit = 20): array {
         global $DB;
-        return $DB->get_records('block_dashann_delqueue', ['status' => 'pending'], 'timecreated ASC', '*', 0, $limit);
+        return $DB->get_records('block_dashboardannouncements_delqueue', ['status' => 'pending'], 'timecreated ASC', '*', 0, $limit);
     }
 
     /**
@@ -88,7 +88,7 @@ class delivery_manager {
         $queue->status = 'processing';
         $queue->timestarted = time();
         $queue->attempts = ((int)$queue->attempts) + 1;
-        $DB->update_record('block_dashann_delqueue', $queue);
+        $DB->update_record('block_dashboardannouncements_delqueue', $queue);
     }
 
     /**
@@ -105,7 +105,7 @@ class delivery_manager {
         $queue->status = $status;
         $queue->lasterror = $error;
         $queue->timefinished = time();
-        $DB->update_record('block_dashann_delqueue', $queue);
+        $DB->update_record('block_dashboardannouncements_delqueue', $queue);
     }
 
     /**
@@ -119,7 +119,7 @@ class delivery_manager {
     public function was_successfully_sent(int $announcementid, int $userid, string $channel = 'message'): bool {
         global $DB;
 
-        return $DB->record_exists('block_dashann_dellog', [
+        return $DB->record_exists('block_dashboardannouncements_dellog', [
             'announcementid' => $announcementid,
             'userid' => $userid,
             'channel' => $channel,
@@ -150,7 +150,7 @@ class delivery_manager {
     ): void {
         global $DB;
 
-        $existing = $DB->get_record('block_dashann_dellog', [
+        $existing = $DB->get_record('block_dashboardannouncements_dellog', [
             'announcementid' => $announcementid,
             'userid' => $userid,
             'channel' => $channel,
@@ -169,11 +169,11 @@ class delivery_manager {
 
         if ($existing) {
             $record->id = $existing->id;
-            $DB->update_record('block_dashann_dellog', $record);
+            $DB->update_record('block_dashboardannouncements_dellog', $record);
             return;
         }
 
-        $DB->insert_record('block_dashann_dellog', $record);
+        $DB->insert_record('block_dashboardannouncements_dellog', $record);
     }
 
     /**
@@ -201,12 +201,12 @@ class delivery_manager {
         }
 
         $snapshotsql = "SELECT announcementid, MIN(id) AS firstqueueid
-                          FROM {block_dashann_delqueue}
+                          FROM {block_dashboardannouncements_delqueue}
                          WHERE announcementid {$insql}
                       GROUP BY announcementid";
         $snapshots = $DB->get_records_sql($snapshotsql, $params);
         foreach ($snapshots as $snapshot) {
-            $queue = $DB->get_record('block_dashann_delqueue', ['id' => $snapshot->firstqueueid], 'announcementid, recipientsnapshotcount');
+            $queue = $DB->get_record('block_dashboardannouncements_delqueue', ['id' => $snapshot->firstqueueid], 'announcementid, recipientsnapshotcount');
             if ($queue) {
                 $stats[(int)$queue->announcementid]['targeted'] = $queue->recipientsnapshotcount === null
                     ? null
@@ -215,7 +215,7 @@ class delivery_manager {
         }
 
         $notifiedsql = "SELECT announcementid, COUNT(DISTINCT userid) AS notifiedcount
-                          FROM {block_dashann_dellog}
+                          FROM {block_dashboardannouncements_dellog}
                          WHERE announcementid {$insql}
                            AND status = :status
                       GROUP BY announcementid";

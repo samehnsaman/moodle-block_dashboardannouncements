@@ -17,7 +17,6 @@
 require_once(__DIR__ . '/../../config.php');
 
 use block_dashboardannouncements\local\announcement_manager;
-use block_dashboardannouncements\local\presentation_helper;
 
 /**
  * Display announcement listings and single announcement views.
@@ -28,7 +27,6 @@ use block_dashboardannouncements\local\presentation_helper;
  */
 
 $id = optional_param('id', 0, PARAM_INT);
-$page = optional_param('page', 0, PARAM_INT);
 $search = trim(optional_param('search', '', PARAM_TEXT));
 $datefrom = optional_param('datefrom', '', PARAM_RAW_TRIMMED);
 $dateto = optional_param('dateto', '', PARAM_RAW_TRIMMED);
@@ -53,9 +51,6 @@ if ($dateto !== '') {
 if ($sort !== 'date' || $dir !== 'DESC') {
     $pageparams['sort'] = $sort;
     $pageparams['dir'] = $dir;
-}
-if ($page > 0) {
-    $pageparams['page'] = $page;
 }
 $PAGE->set_url(new moodle_url('/blocks/dashboardannouncements/view.php', $pageparams));
 $PAGE->set_context($systemcontext);
@@ -82,33 +77,35 @@ if ($id) {
         }
     }
 
-    $attachment = $manager->get_attachment_file((int)$announcement->id);
-    $attachmentdisplay = presentation_helper::build_attachment_display(
-        (int)$systemcontext->id,
-        (int)$announcement->id,
-        $attachment
-    );
-    $metaitems = presentation_helper::build_end_user_metadata_items(
-        (int)($announcement->timestart ?? 0),
-        $attachmentdisplay['name'],
-        $postername
-    );
+    $datevalue = !empty($announcement->timestart)
+        ? userdate((int)$announcement->timestart, get_string('strftimedatetime', 'langconfig'))
+        : get_string('noattachment', 'block_dashboardannouncements');
 
-    $detailcontent = html_writer::div(
-        html_writer::tag(
-            'h2',
-            format_string($announcement->title),
-            ['class' => 'dashboardannouncements-card__title']
-        ),
-        'dashboardannouncements-card__header'
-    );
-    $detailcontent .= presentation_helper::render_metadata_list($metaitems, 'dashboardannouncements-card__meta');
-    $detailcontent .= html_writer::div(format_text($announcement->message, FORMAT_HTML), 'dashboardannouncements-card__body');
-    if ($attachmentdisplay['actionhtml'] !== '') {
-        $detailcontent .= html_writer::div($attachmentdisplay['actionhtml'], 'dashboardannouncements-card__actions');
+    $attachmentcell = get_string('noattachment', 'block_dashboardannouncements');
+    echo $OUTPUT->heading(format_string($announcement->title), 2);
+    $attachment = $manager->get_attachment_file((int)$announcement->id);
+    if ($attachment) {
+        $attachmenturl = moodle_url::make_pluginfile_url(
+            $systemcontext->id,
+            'block_dashboardannouncements',
+            announcement_manager::ATTACHMENT_FILEAREA,
+            $announcement->id,
+            '/',
+            $attachment->get_filename()
+        );
+        $attachmentcell = html_writer::link($attachmenturl, s($attachment->get_filename()));
     }
 
-    echo html_writer::div($detailcontent, 'dashboardannouncements-card dashboardannouncements-detail');
+    $detailtable = new html_table();
+    $detailtable->attributes['class'] = 'generaltable dashboardannouncements-detailtable';
+    $detailtable->data = [
+        [get_string('date', 'block_dashboardannouncements'), s($datevalue)],
+        [get_string('postedby', 'block_dashboardannouncements'), s($postername)],
+        [get_string('attachment', 'block_dashboardannouncements'), $attachmentcell],
+    ];
+
+    echo html_writer::table($detailtable);
+    echo html_writer::div(format_text($announcement->message, FORMAT_HTML), 'dashboardannouncement-message');
     echo $OUTPUT->footer();
     exit;
 }
@@ -116,16 +113,10 @@ if ($id) {
 $announcements = $manager->get_announcements_for_user((int)$USER->id);
 
 if (!$announcements) {
-    $emptystate = presentation_helper::get_empty_state_copy('default');
-    echo presentation_helper::render_empty_state(
-        $emptystate['title'],
-        $emptystate['description']
-    );
+    echo html_writer::div(get_string('noannouncements', 'block_dashboardannouncements'));
     echo $OUTPUT->footer();
     exit;
 }
-
-echo html_writer::start_div('dashboardannouncements-stack');
 
 $datefromts = $datefrom !== '' ? strtotime($datefrom . ' 00:00:00') : null;
 $datetots = $dateto !== '' ? strtotime($dateto . ' 23:59:59') : null;
@@ -186,54 +177,52 @@ usort($filtered, static function($leftannouncement, $rightannouncement) use ($ma
 echo html_writer::start_tag('form', [
     'method' => 'get',
     'action' => new moodle_url('/blocks/dashboardannouncements/view.php'),
-    'class' => 'dashboardannouncements-filters mb-4',
+    'class' => 'dashboardannouncements-filters',
 ]);
-echo html_writer::start_div('d-flex flex-wrap align-items-end gap-2');
-echo html_writer::start_div('form-group mb-2 mr-2');
-echo html_writer::label(get_string('search', 'block_dashboardannouncements'), 'dashboardannouncements-search', false, ['class' => 'small text-muted mb-1 d-block']);
+echo html_writer::start_div('dashboardannouncements-filters__grid');
+echo html_writer::start_div('dashboardannouncements-filters__group');
+echo html_writer::label(get_string('search', 'block_dashboardannouncements'), 'dashboardannouncements-search', false, ['class' => 'dashboardannouncements-filters__label']);
 echo html_writer::empty_tag('input', [
     'type' => 'text',
     'name' => 'search',
     'id' => 'dashboardannouncements-search',
     'value' => $search,
     'placeholder' => get_string('search', 'block_dashboardannouncements'),
-    'class' => 'form-control',
+    'class' => 'dashboardannouncements-filters__input',
 ]);
 echo html_writer::end_div();
-echo html_writer::start_div('form-group mb-2 mr-2');
-echo html_writer::label(get_string('datefrom', 'block_dashboardannouncements'), 'dashboardannouncements-datefrom', false, ['class' => 'small text-muted mb-1 d-block']);
+echo html_writer::start_div('dashboardannouncements-filters__group');
+echo html_writer::label(get_string('datefrom', 'block_dashboardannouncements'), 'dashboardannouncements-datefrom', false, ['class' => 'dashboardannouncements-filters__label']);
 echo html_writer::empty_tag('input', [
     'type' => 'date',
     'name' => 'datefrom',
     'id' => 'dashboardannouncements-datefrom',
     'value' => $datefrom,
-    'class' => 'form-control',
+    'class' => 'dashboardannouncements-filters__input',
 ]);
 echo html_writer::end_div();
-echo html_writer::start_div('form-group mb-2 mr-2');
-echo html_writer::label(get_string('dateto', 'block_dashboardannouncements'), 'dashboardannouncements-dateto', false, ['class' => 'small text-muted mb-1 d-block']);
+echo html_writer::start_div('dashboardannouncements-filters__group');
+echo html_writer::label(get_string('dateto', 'block_dashboardannouncements'), 'dashboardannouncements-dateto', false, ['class' => 'dashboardannouncements-filters__label']);
 echo html_writer::empty_tag('input', [
     'type' => 'date',
     'name' => 'dateto',
     'id' => 'dashboardannouncements-dateto',
     'value' => $dateto,
-    'class' => 'form-control',
+    'class' => 'dashboardannouncements-filters__input',
 ]);
 echo html_writer::end_div();
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sort', 'value' => $sort]);
 echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'dir', 'value' => $dir]);
-echo html_writer::start_div('form-group mb-2 mr-2');
+echo html_writer::start_div('dashboardannouncements-filters__actions');
 echo html_writer::empty_tag('input', [
     'type' => 'submit',
     'value' => get_string('filter', 'block_dashboardannouncements'),
-    'class' => 'btn btn-primary',
+    'class' => 'dashboardannouncements-filters__submit',
 ]);
-echo html_writer::end_div();
-echo html_writer::start_div('form-group mb-2');
 echo html_writer::link(
     new moodle_url('/blocks/dashboardannouncements/view.php'),
     get_string('resetfilters', 'block_dashboardannouncements'),
-    ['class' => 'btn btn-secondary']
+    ['class' => 'dashboardannouncements-filters__reset']
 );
 echo html_writer::end_div();
 echo html_writer::end_div();
@@ -255,85 +244,47 @@ $sortlink = static function(string $column, string $label) use ($search, $datefr
     return html_writer::link(new moodle_url('/blocks/dashboardannouncements/view.php', $params), $label . $indicator);
 };
 
-echo html_writer::div(
-    html_writer::span(get_string('sort', 'moodle') . ': ', 'mr-2') .
-    html_writer::div(
-        $sortlink('date', get_string('date', 'block_dashboardannouncements')) . ' ' .
-        $sortlink('title', get_string('titlepreview', 'block_dashboardannouncements')) . ' ' .
-        $sortlink('attachment', get_string('attachment', 'block_dashboardannouncements')),
-        'dashboardannouncements-cluster'
-    ),
-    'dashboardannouncements-toolbar'
-);
+$table = new html_table();
+$table->attributes['class'] = 'generaltable dashboardannouncements-table';
+$table->head = [
+    $sortlink('title', get_string('titlepreview', 'block_dashboardannouncements')),
+    get_string('messagepreview', 'block_dashboardannouncements'),
+    $sortlink('date', get_string('date', 'block_dashboardannouncements')),
+    $sortlink('attachment', get_string('attachment', 'block_dashboardannouncements')),
+];
+$table->data = [];
 
-$cards = [];
-$perpage = 10;
-$totalcount = count($filtered);
-$page = max(0, $page);
-$offset = $page * $perpage;
-if ($totalcount > 0 && $offset >= $totalcount) {
-    $page = (int)floor(($totalcount - 1) / $perpage);
-    $offset = $page * $perpage;
-}
-$pagedannouncements = array_slice($filtered, $offset, $perpage);
-
-foreach ($pagedannouncements as $announcement) {
+foreach ($filtered as $announcement) {
     $itemurl = new moodle_url('/blocks/dashboardannouncements/view.php', ['id' => $announcement->id]);
     $attachment = $manager->get_attachment_file((int)$announcement->id);
-    $hasattachment = (bool)$attachment;
+    $attachmentcell = get_string('noattachment', 'block_dashboardannouncements');
+
+    if ($attachment) {
+        $attachmenturl = moodle_url::make_pluginfile_url(
+            $systemcontext->id,
+            'block_dashboardannouncements',
+            announcement_manager::ATTACHMENT_FILEAREA,
+            $announcement->id,
+            '/',
+            $attachment->get_filename()
+        );
+        $attachmentcell = html_writer::link($attachmenturl, s($attachment->get_filename()));
+    }
+
+    $datevalue = !empty($announcement->timestart)
+        ? userdate((int)$announcement->timestart, get_string('strftimedatetime', 'langconfig'))
+        : get_string('noattachment', 'block_dashboardannouncements');
     $titlepreview = shorten_text(trim(strip_tags(format_string($announcement->title))), 100, true, '');
-    $messagepreview = presentation_helper::get_compact_message_preview((string)$announcement->message);
-    $submitteddate = presentation_helper::format_metadata_datetime((int)($announcement->timecreated ?? 0));
+    $messagepreview = shorten_text(trim(strip_tags(format_text($announcement->message, FORMAT_HTML))), 140, true, '');
 
-    $cardcontent = html_writer::div(
-        html_writer::tag(
-            'h3',
-            html_writer::link($itemurl, s($titlepreview)),
-            ['class' => 'dashboardannouncements-card__title']
-        ) . presentation_helper::render_attachment_indicator($hasattachment),
-        'dashboardannouncements-card__header'
-    );
-    $cardcontent .= html_writer::div(
-        s(get_string('submittedon', 'block_dashboardannouncements', $submitteddate)),
-        'dashboardannouncements-card__meta dashboardannouncements-subtle'
-    );
-    $cardcontent .= html_writer::div(s($messagepreview), 'dashboardannouncements-card__body');
-
-    $cardclasses = 'dashboardannouncements-card dashboardannouncements-card--compact';
-    if (!empty($announcement->showaspopup)) {
-        $cardclasses .= ' dashboardannouncements-card--popup';
-    }
-    $cards[] = html_writer::div($cardcontent, $cardclasses);
+    $table->data[] = [
+        html_writer::link($itemurl, s($titlepreview)),
+        s($messagepreview),
+        s($datevalue),
+        $attachmentcell,
+    ];
 }
 
-if (!$cards) {
-    $emptystate = presentation_helper::get_empty_state_copy('list');
-    echo presentation_helper::render_empty_state(
-        $emptystate['title'],
-        $emptystate['description']
-    );
-} else {
-    echo html_writer::div(implode('', $cards), 'dashboardannouncements-list');
+echo html_writer::table($table);
 
-    if ($totalcount > $perpage) {
-        $pagingparams = [
-            'sort' => $sort,
-            'dir' => $dir,
-        ];
-        if ($search !== '') {
-            $pagingparams['search'] = $search;
-        }
-        if ($datefrom !== '') {
-            $pagingparams['datefrom'] = $datefrom;
-        }
-        if ($dateto !== '') {
-            $pagingparams['dateto'] = $dateto;
-        }
-
-        $baseurl = new moodle_url('/blocks/dashboardannouncements/view.php', $pagingparams);
-        echo $OUTPUT->render(new paging_bar($totalcount, $page, $perpage, $baseurl, 'page'));
-    }
-}
-
-echo html_writer::end_div();
 echo $OUTPUT->footer();

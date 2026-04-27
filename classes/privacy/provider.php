@@ -51,20 +51,20 @@ class provider implements metadata_provider {
             'modifiedby' => 'privacy:metadata:block_dashboardannouncements:modifiedby',
         ], 'privacy:metadata:block_dashboardannouncements');
 
-        $collection->add_database_table('block_dashann_delqueue', [
-            'announcementid' => 'privacy:metadata:block_dashann_delqueue:announcementid',
-            'channel' => 'privacy:metadata:block_dashann_delqueue:channel',
-            'status' => 'privacy:metadata:block_dashann_delqueue:status',
-            'recipientsnapshotcount' => 'privacy:metadata:block_dashann_delqueue:recipientsnapshotcount',
-        ], 'privacy:metadata:block_dashann_delqueue');
+        $collection->add_database_table('block_dashboardannouncements_delqueue', [
+            'announcementid' => 'privacy:metadata:block_dashboardannouncements_delqueue:announcementid',
+            'channel' => 'privacy:metadata:block_dashboardannouncements_delqueue:channel',
+            'status' => 'privacy:metadata:block_dashboardannouncements_delqueue:status',
+            'recipientsnapshotcount' => 'privacy:metadata:block_dashboardannouncements_delqueue:recipientsnapshotcount',
+        ], 'privacy:metadata:block_dashboardannouncements_delqueue');
 
-        $collection->add_database_table('block_dashann_dellog', [
-            'announcementid' => 'privacy:metadata:block_dashann_dellog:announcementid',
-            'userid' => 'privacy:metadata:block_dashann_dellog:userid',
-            'channel' => 'privacy:metadata:block_dashann_dellog:channel',
-            'status' => 'privacy:metadata:block_dashann_dellog:status',
-            'errorinfo' => 'privacy:metadata:block_dashann_dellog:errorinfo',
-        ], 'privacy:metadata:block_dashann_dellog');
+        $collection->add_database_table('block_dashboardannouncements_dellog', [
+            'announcementid' => 'privacy:metadata:block_dashboardannouncements_dellog:announcementid',
+            'userid' => 'privacy:metadata:block_dashboardannouncements_dellog:userid',
+            'channel' => 'privacy:metadata:block_dashboardannouncements_dellog:channel',
+            'status' => 'privacy:metadata:block_dashboardannouncements_dellog:status',
+            'errorinfo' => 'privacy:metadata:block_dashboardannouncements_dellog:errorinfo',
+        ], 'privacy:metadata:block_dashboardannouncements_dellog');
 
         $collection->add_user_preference(
             announcement_manager::POPUP_SEEN_PREFERENCE_PREFIX . '{announcementid}',

@@ -83,16 +83,20 @@ function xmldb_block_dashboardannouncements_upgrade(int $oldversion): bool {
         upgrade_block_savepoint(true, 2026041901, 'dashboardannouncements');
     }
 
-    if ($oldversion < 2026041904) {
+    if ($oldversion < 2026042800) {
         $dbman = $DB->get_manager();
-        $table = new xmldb_table('block_dashboardannouncements');
-        $field = new xmldb_field('showaspopup', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'sendmode');
 
-        if (!$dbman->field_exists($table, $field)) {
-            $dbman->add_field($table, $field);
+        $queuetable = new xmldb_table('block_dashann_delqueue');
+        if ($dbman->table_exists($queuetable)) {
+            $dbman->rename_table($queuetable, 'block_dashboardannouncements_delqueue');
         }
 
-        upgrade_block_savepoint(true, 2026041904, 'dashboardannouncements');
+        $logtable = new xmldb_table('block_dashann_dellog');
+        if ($dbman->table_exists($logtable)) {
+            $dbman->rename_table($logtable, 'block_dashboardannouncements_dellog');
+        }
+
+        upgrade_block_savepoint(true, 2026042800, 'dashboardannouncements');
     }
 
     return true;

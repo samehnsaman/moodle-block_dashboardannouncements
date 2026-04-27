@@ -46,4 +46,12 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
+    'block/dashboardannouncements:myaddinstance' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'user' => CAP_ALLOW,
+        ],
+        'clonepermissionsfrom' => 'moodle/my:manageblocks',
+    ],
 ];
